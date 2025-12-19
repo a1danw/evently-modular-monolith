@@ -20,14 +20,13 @@ Although deployed as a single application, each module behaves like an isolated 
 
 ---
 
-## High-Level System Diagram
+## High-Level System Diagram (Mermaid)
 
 ```mermaid
 flowchart TB
 
-  API["ASP.NET Core Web API (Single Executable)"]
+  API["ASP.NET Core Web API"]
 
-  %% Modules
   U["Users Module"]
   E["Events Module"]
   T["Ticketing Module"]
@@ -38,32 +37,64 @@ flowchart TB
   API --> T
   API --> A
 
-  %% Databases
   PG[(PostgreSQL)]
   REDIS[(Redis)]
   MONGO[(MongoDB)]
 
-  %% Schemas
-  US[(users schema)]
-  ES[(events schema)]
-  TS[(ticketing schema)]
-
-  PG --> US
-  PG --> ES
-  PG --> TS
-
-  U --> US
-  E --> ES
-  T --> TS
-
-  %% Specialised storage
+  U --> PG
+  E --> PG
+  T --> PG
   T --> REDIS
   A --> MONGO
 
-  %% Conceptual communication (no direct DB access)
-  U -. "maps to customer" .-> T
-  E -. "event & ticket type concepts" .-> T
-  T -. "ticket usage data" .-> A
+  U -. "customer mapping" .-> T
+  E -. "event & ticket types" .-> T
+  T -. "ticket usage" .-> A
+```
+
+---
+
+## Module & Schema Layout (GitHub-safe ASCII Diagram)
+
+This diagram mirrors the whiteboard-style diagrams from the course and is guaranteed to render everywhere.
+
+```
+API REQUEST
+     |
+     v
++--------------------------------------------------+
+|              ASP.NET Core Web API                |
+|                                                  |
+|  +---------+  +---------+  +-----------+  +-----------+
+|  | Users   |  | Events  |  | Ticketing |  | Attendance|
+|  +---------+  +---------+  +-----------+  +-----------+
+|       |            |            |               |
++-------|------------|------------|---------------+
+        v            v            v               v
++--------------------------------------------------+
+|                     Database                     |
+|                                                  |
+|  users.*     events.*     ticketing.*     attendance.*
+|  (Postgres)  (Postgres)   (Postgres)      (MongoDB)
+|                               |
+|                             Redis
++--------------------------------------------------+
+```
+
+---
+
+## Bounded Context Responsibilities
+
+```mermaid
+flowchart LR
+  Users["Users\n- users\n- roles\n- permissions"]
+  Events["Events\n- events\n- ticket_types\n- categories"]
+  Ticketing["Ticketing\n- carts\n- orders\n- payments\n- tickets"]
+  Attendance["Attendance\n- attendees\n- event_stats"]
+
+  Users --> Ticketing
+  Events --> Ticketing
+  Ticketing --> Attendance
 ```
 
 ---
@@ -83,7 +114,7 @@ flowchart TB
 - A **single PostgreSQL database**
 - Each module owns its **own schema**
 - Modules **do not directly access** other modules’ schemas
-- Cross-module communication and data sharing are handled via controlled mechanisms
+- Cross-module communication is handled via controlled boundaries
 
 ---
 
@@ -91,59 +122,31 @@ flowchart TB
 
 ### Users Module
 - Core entity: **User**
-- Manages:
-  - Users
-  - Roles
-  - Permissions
-- Implements **Role-Based Access Control (RBAC)**
+- Manages users, roles, and permissions
+- Implements **RBAC**
 - Source of truth for identity
-- Other modules reference users indirectly (e.g. “customers”)
-
----
 
 ### Events Module
-- Defines **events** that users can attend and buy tickets for
-- Manages:
-  - Events
-  - Ticket types (Early Bird, Standard, VIP)
-  - Event categories
-- **Not public-facing**
-- Acts as an **administration module**
-- Source of truth for event-related data
-
----
+- Defines events, ticket types, and categories
+- Administrative module
+- Source of truth for event data
 
 ### Ticketing Module (Core Domain)
-- Central module with the **most business logic**
-- Handles:
-  - Carts and cart items
-  - Orders and order items
-  - Checkout flow
-  - Payments and refunds
-  - Discount codes
-  - Ticket generation
-- Uses **Redis** for performance-sensitive operations
-- Operates within its own **bounded context**
-- Customers map to users from the Users module
-
----
+- Largest and most complex module
+- Handles carts, orders, payments, refunds, discounts, and ticket generation
+- Uses Redis for performance-sensitive operations
 
 ### Attendance Module
-- Tracks **event attendance**
-- Records:
-  - Attended events
-  - Used tickets
+- Tracks event attendance and ticket usage
 - Detects anomalies (e.g. duplicate ticket usage)
-- Uses **MongoDB** for flexible analytics-style data storage
+- Uses MongoDB for analytics-style storage
 
 ---
 
 ## Key Design Principles
 
 - Modular monolith with **clear bounded contexts**
-- Vertical slice architecture per module
+- Vertical slice architecture
 - Progressive refactoring toward **Clean Architecture**
-- Separation of:
-  - Administrative concerns
-  - Customer-facing concerns
-- Focused on teaching **real-world architectural trade-offs**
+- Separation of administrative and customer-facing concerns
+- Focused on real-world architectural trade-offs
