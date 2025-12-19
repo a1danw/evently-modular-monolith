@@ -25,13 +25,13 @@ Although deployed as a single application, each module behaves like an isolated 
 ```mermaid
 flowchart TB
 
-  API[ASP.NET Core Web API<br/>(Single Executable)]
+  API["ASP.NET Core Web API (Single Executable)"]
 
   %% Modules
-  U[Users Module]
-  E[Events Module]
-  T[Ticketing Module]
-  A[Attendance Module]
+  U["Users Module"]
+  E["Events Module"]
+  T["Ticketing Module"]
+  A["Attendance Module"]
 
   API --> U
   API --> E
@@ -61,9 +61,9 @@ flowchart TB
   A --> MONGO
 
   %% Conceptual communication (no direct DB access)
-  U -. maps to customer .-> T
-  E -. event & ticket type concepts .-> T
-  T -. ticket usage data .-> A
+  U -. "maps to customer" .-> T
+  E -. "event & ticket type concepts" .-> T
+  T -. "ticket usage data" .-> A
 ```
 
 ---
